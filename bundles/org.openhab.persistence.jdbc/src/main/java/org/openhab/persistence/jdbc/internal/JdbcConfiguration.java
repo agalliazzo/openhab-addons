@@ -27,6 +27,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.persistence.jdbc.internal.db.JdbcBaseDAO;
 import org.openhab.persistence.jdbc.internal.utils.MovingAverage;
 import org.openhab.persistence.jdbc.internal.utils.StringUtilsExt;
+import org.openhab.persistence.jdbc.internal.utils.SwitchItemStorageDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
  * Configuration class
  *
  * @author Helmut Lehmeyer - Initial contribution
+ * @author Alessio Galliazzo - Added the capabilities to save switch items as a number
  */
 @NonNullByDefault
 public class JdbcConfiguration {
@@ -139,6 +141,22 @@ public class JdbcConfiguration {
             dBDAO.databaseProps.setProperty("dataSource.password", password);
         }
 
+        String switchItemStorageDatatype = (String) configuration.get("datatype.SWITCH");
+        if (switchItemStorageDatatype != null && !switchItemStorageDatatype.isBlank()) {
+            if ("numeric".equalsIgnoreCase(switchItemStorageDatatype)) {
+                dBDAO.setSwitchItemDataType(SwitchItemStorageDataType.INT);
+                // Update the data types
+
+                dBDAO.sqlTypes.put("SWITCHITEM", dBDAO.getDefaultBooleanType());
+                dBDAO.sqlTypes.put("CONTACTITEM", dBDAO.getDefaultBooleanType());
+            } else {
+                dBDAO.setSwitchItemDataType(SwitchItemStorageDataType.STRING);
+                // No need to update the data types here, we are using the defaults
+            }
+        } else {
+            dBDAO.setSwitchItemDataType(SwitchItemStorageDataType.STRING);
+        }
+
         // set sql-types from external config
         setSqlTypes();
 
@@ -211,7 +229,7 @@ public class JdbcConfiguration {
         // undocumented
         String ent = (String) configuration.get("enableLogTime");
         if (ent != null && !ent.isBlank()) {
-            enableLogTime = "true".equals(ent) ? Boolean.parseBoolean(ent) : false;
+            enableLogTime = "true".equals(ent);
         }
         logger.debug("JDBC::updateConfig: enableLogTime {}", enableLogTime);
 

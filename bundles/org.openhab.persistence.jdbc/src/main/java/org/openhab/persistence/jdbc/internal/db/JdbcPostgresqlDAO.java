@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * default settings from JdbcBaseDAO. Enter only the differences to JdbcBaseDAO here.
  *
  * @author Helmut Lehmeyer - Initial contribution
+ * @author Alessio Galliazzo - Added the capabilities to save switch items as a number
  */
 @NonNullByDefault
 public class JdbcPostgresqlDAO extends JdbcBaseDAO {
@@ -105,7 +106,6 @@ public class JdbcPostgresqlDAO extends JdbcBaseDAO {
         // Initialize the type array
         sqlTypes.put("CALLITEM", "VARCHAR");
         sqlTypes.put("COLORITEM", "VARCHAR");
-        sqlTypes.put("CONTACTITEM", "VARCHAR");
         sqlTypes.put("DATETIMEITEM", "TIMESTAMPTZ");
         sqlTypes.put("DIMMERITEM", "SMALLINT");
         sqlTypes.put("IMAGEITEM", "VARCHAR");
@@ -115,6 +115,7 @@ public class JdbcPostgresqlDAO extends JdbcBaseDAO {
         sqlTypes.put("ROLLERSHUTTERITEM", "SMALLINT");
         sqlTypes.put("STRINGITEM", "VARCHAR");
         sqlTypes.put("SWITCHITEM", "VARCHAR");
+        sqlTypes.put("CONTACTITEM", "VARCHAR");
         sqlTypes.put("tablePrimaryKey", "TIMESTAMPTZ");
         logger.debug("JDBC::initSqlTypes: Initialized the type array sqlTypes={}", sqlTypes.values());
     }
@@ -290,6 +291,11 @@ public class JdbcPostgresqlDAO extends JdbcBaseDAO {
     @Override
     protected String formattedIdentifier(String identifier) {
         return "\"" + identifier + "\"";
+    }
+
+    @Override
+    public String getDefaultBooleanType() {
+        return "SMALLINT";
     }
 
     /******************************

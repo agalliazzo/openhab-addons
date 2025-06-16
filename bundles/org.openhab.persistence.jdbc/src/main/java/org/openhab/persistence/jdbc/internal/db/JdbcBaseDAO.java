@@ -47,6 +47,8 @@ import org.openhab.core.library.items.SwitchItem;
 import org.openhab.core.library.types.DateTimeType;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.HSBType;
+import org.openhab.core.library.types.OnOffType;
+import org.openhab.core.library.types.OpenClosedType;
 import org.openhab.core.library.types.PercentType;
 import org.openhab.core.library.types.QuantityType;
 import org.openhab.core.library.types.RawType;
@@ -63,6 +65,7 @@ import org.openhab.persistence.jdbc.internal.dto.JdbcHistoricItem;
 import org.openhab.persistence.jdbc.internal.exceptions.JdbcSQLException;
 import org.openhab.persistence.jdbc.internal.utils.DbMetaData;
 import org.openhab.persistence.jdbc.internal.utils.StringUtilsExt;
+import org.openhab.persistence.jdbc.internal.utils.SwitchItemStorageDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +73,7 @@ import org.slf4j.LoggerFactory;
  * Default Database Configuration class.
  *
  * @author Helmut Lehmeyer - Initial contribution
+ * @author Alessio Galliazzo - Added the capabilities to save switch items as a number
  */
 @NonNullByDefault
 public class JdbcBaseDAO {
@@ -97,6 +101,8 @@ public class JdbcBaseDAO {
     protected String sqlAlterTableColumn = "ALTER TABLE #tableName# MODIFY COLUMN #columnName# #columnType#";
     protected String sqlInsertItemValue = "INSERT INTO #tableName# (time, value) VALUES( #tablePrimaryValue#, ? ) ON DUPLICATE KEY UPDATE VALUE= ?";
     protected String sqlGetRowCount = "SELECT COUNT(*) FROM #tableName#";
+
+    protected SwitchItemStorageDataType switchItemDataType = SwitchItemStorageDataType.STRING;
 
     /********
      * INIT *
@@ -149,7 +155,6 @@ public class JdbcBaseDAO {
         logger.debug("JDBC::initSqlTypes: Initialize the type array");
         sqlTypes.put("CALLITEM", "VARCHAR(200)");
         sqlTypes.put("COLORITEM", "VARCHAR(70)");
-        sqlTypes.put("CONTACTITEM", "VARCHAR(6)");
         sqlTypes.put("DATETIMEITEM", "TIMESTAMP");
         sqlTypes.put("DIMMERITEM", "TINYINT");
         sqlTypes.put("IMAGEITEM", "VARCHAR(65500)");// jdbc max 21845
@@ -159,6 +164,7 @@ public class JdbcBaseDAO {
         sqlTypes.put("ROLLERSHUTTERITEM", "TINYINT");
         sqlTypes.put("STRINGITEM", "VARCHAR(65500)");// jdbc max 21845
         sqlTypes.put("SWITCHITEM", "VARCHAR(6)");
+        sqlTypes.put("CONTACTITEM", "VARCHAR(6)");
         sqlTypes.put("tablePrimaryKey", "TIMESTAMP");
         sqlTypes.put("tablePrimaryValue", "NOW()");
     }
@@ -651,6 +657,18 @@ public class JdbcBaseDAO {
                 logger.debug("JDBC::storeItemValueProvider: ImageItem: '{}'", encodedString);
                 vo.setValue(encodedString);
                 break;
+            case "SWITCHITEM":
+            case "CONTACTITEM":
+                if (switchItemDataType == SwitchItemStorageDataType.INT) {
+                    vo.setValueTypes(getSqlTypes().get(itemType), java.lang.Integer.class);
+                    int intValue = 0;
+                    if (item.getState() == OnOffType.ON || item.getState() == OpenClosedType.OPEN) {
+                        intValue = 1;
+                    }
+                    logger.debug("JDBC::storeItemValueProvider: newVal.intValue: '{}'", intValue);
+                    vo.setValue(intValue);
+                    break;
+                }
             default:
                 // All other items should return the best format by default
                 vo.setValueTypes(getSqlTypes().get(itemType), java.lang.String.class);
@@ -664,6 +682,33 @@ public class JdbcBaseDAO {
     /*****************
      * H E L P E R S *
      *****************/
+    protected Integer getIntegerFromValue(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof Double) {
+            return ((Double) value).intValue();
+        } else if (value instanceof BigDecimal) {
+            return ((BigDecimal) value).intValue();
+        } else if (value instanceof String) {
+            return Integer.parseInt((String) value);
+        } else {
+            throw new IllegalArgumentException("Value is not an Integer nor a Double: " + value);
+        }
+    }
+
+    protected State getStateForBooleans(Object v, State trueState, State falseState, Item item) {
+        State state = null;
+        if (switchItemDataType == SwitchItemStorageDataType.INT) {
+            state = getIntegerFromValue(v) == 1 ? OpenClosedType.OPEN : OpenClosedType.CLOSED;
+        } else {
+            state = TypeParser.parseState(item.getAcceptedDataTypes(), objectAsString(v).trim());
+        }
+        if (state == null) {
+            throw new UnsupportedOperationException("Unable to parse state for item " + item.toString());
+        }
+        return state;
+    }
+
     protected State objectAsState(Item item, @Nullable Unit<? extends Quantity<?>> unit, Object v) {
         logger.debug(
                 "JDBC::ItemResultHandler::handleResult getState value = '{}', unit = '{}', getClass = '{}', clazz = '{}'",
@@ -692,12 +737,17 @@ public class JdbcBaseDAO {
             return new PercentType(objectAsInteger(v));
         } else if (item instanceof ImageItem) {
             return RawType.valueOf(objectAsString(v));
-        } else if (item instanceof ContactItem || item instanceof PlayerItem || item instanceof SwitchItem) {
+        } else if (item instanceof PlayerItem) {
             State state = TypeParser.parseState(item.getAcceptedDataTypes(), objectAsString(v).trim());
             if (state == null) {
                 throw new UnsupportedOperationException("Unable to parse state for item " + item.toString());
             }
             return state;
+        } else if (item instanceof ContactItem) {
+            return getStateForBooleans(v, OpenClosedType.OPEN, OpenClosedType.CLOSED, item);
+
+        } else if (item instanceof SwitchItem) {
+            return getStateForBooleans(v, OnOffType.ON, OnOffType.OFF, item);
         } else {
             if (!(v instanceof String objectAsString)) {
                 throw new UnsupportedOperationException(
@@ -806,5 +856,17 @@ public class JdbcBaseDAO {
             throw new UnsupportedOperationException("No data type found for " + getItemType(item));
         }
         return dataType;
+    }
+
+    public String getDefaultBooleanType() {
+        return "TINYINT";
+    }
+
+    public SwitchItemStorageDataType getSwitchItemDataType() {
+        return switchItemDataType;
+    }
+
+    public void setSwitchItemDataType(SwitchItemStorageDataType switchItemDataType) {
+        this.switchItemDataType = switchItemDataType;
     }
 }

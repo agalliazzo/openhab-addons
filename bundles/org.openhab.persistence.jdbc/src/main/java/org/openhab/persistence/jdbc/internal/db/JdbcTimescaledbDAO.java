@@ -77,4 +77,9 @@ public class JdbcTimescaledbDAO extends JdbcPostgresqlDAO {
             throw new JdbcSQLException(e);
         }
     }
+
+    @Override
+    public String getDefaultBooleanType() {
+        return "SMALLINT";
+    }
 }

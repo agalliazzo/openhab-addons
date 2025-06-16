@@ -134,6 +134,19 @@
 		</parameter>
 
 		<!--
+			This parameter allow user to choose if he prefer to save data as integer or as a string for
+			Switchitem type. Saving as an integer is useful if you want to do some stats
+		-->
+		<parameter name="datatype.SWITCH" type="text">
+			<label>SWITCH item data type</label>
+			<description><![CDATA[Choose the storage type for SWITCHITEM. The default is to store it as a string. You can choose to store it as integers]]></description>
+			<options>
+				<option value="string">Treat SWITCHITEM state as string</option>
+				<option value="numeric">Treat SWITCHITEM state as numeric values</option>
+			</options>
+		</parameter>
+
+		<!--
 			# T A B L E O P E R A T I O N S
 			# Items Manage Table (optional, default: "items")
 			# for Migration from MYSQL-Bundle set to 'Items'.
