@@ -12,6 +12,9 @@
  */
 package org.openhab.binding.broadlink.internal.handler;
 
+import java.io.IOException;
+import java.net.InetAddress;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.binding.broadlink.internal.BroadlinkRemoteDynamicCommandDescriptionProvider;
 import org.openhab.core.storage.StorageService;
@@ -29,5 +32,13 @@ public class BroadlinkRemoteModel3V44057Handler extends BroadlinkRemoteModel4Min
             BroadlinkRemoteDynamicCommandDescriptionProvider commandDescriptionProvider,
             StorageService storageService) {
         super(thing, commandDescriptionProvider, storageService);
+    }
+
+    @Override
+    protected void getStatusFromDevice() throws BroadlinkStatusException, IOException {
+        InetAddress address = InetAddress.getByName(thingConfig.getIpAddress());
+        if (!address.isReachable(3000)) {
+            throw new IOException("Cannot reach " + thingConfig.getIpAddress());
+        }
     }
 }
