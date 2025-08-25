@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="samsungac"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- Sample Thing Type -->
+	<thing-type id="Airconditioner">
+		<!-- Comment this in for Things which need a Bridge to function.
+			<supported-bridge-type-refs>
+			<bridge-type-ref id="SamsungACBridge" />
+			</supported-bridge-type-refs>
+		-->
+
+		<label>SamsungAC Binding Thing</label>
+		<description>Sample thing for SamsungAC Binding</description>
+
+		<channels>
+			<channel id="powerChannel" typeId="power-channel"/>
+			<channel id="operationMode" typeId="operationMode-channel"/>
+			<channel id="setTemperature" typeId="setTemperature-channel"/>
+			<channel id="measuredTemperature" typeId="measuredTemperature-channel"/>
+			<channel id="fanSpeed" typeId="fanSpeed-channel"/>
+			<channel id="vaneVertical" typeId="vaneVertical-channel"/>
+			<channel id="virusDoctor" typeId="virusDoctor-Channel"/>
+			<channel id="coMode" typeId="coMode-channel"/>
+		</channels>
+
+		<config-description>
+			<parameter name="hostname" type="text" required="true">
+				<context>network-address</context>
+				<label>Hostname</label>
+				<description>Hostname or IP address of the device</description>
+			</parameter>
+			<parameter name="UID" type="text" required="true">
+				<context>Device-information</context>
+				<label>UID</label>
+				<description>Unique ID for the device, usually the MAC address without colon</description>
+			</parameter>
+			<parameter name="token" type="text" required="true">
+				<context>Device-information</context>
+				<label>Token</label>
+				<description>Token for the device - TBD</description>
+			</parameter>
+		</config-description>
+	</thing-type>
+
+	<channel-type id="power-channel">
+		<item-type>Switch</item-type>
+		<label>Power</label>
+		<description>Power status of device</description>
+		<tags>
+			<tag>Switch</tag>
+			<tag>Power</tag>
+		</tags>
+	</channel-type>
+
+	<channel-type id="operationMode-channel">
+		<item-type>String</item-type>
+		<label>Operation Mode</label>
+		<description>Operation mode</description>
+		<tags>
+			<tag>Status</tag>
+			<tag>Mode</tag>
+		</tags>
+		<state readOnly="false">
+			<options>
+				<option value="0">Auto</option>
+				<option value="1">Cool</option>
+				<option value="2">Dry</option>
+				<option value="3">Wind</option>
+				<option value="4">Heat</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-type id="coMode-channel">
+		<item-type>String</item-type>
+		<label>Co Mode</label>
+		<description>Co mode</description>
+		<tags>
+			<tag>Status</tag>
+			<tag>Mode</tag>
+		</tags>
+		<state readOnly="false">
+			<options>
+				<option value="0">Off</option>
+				<option value="1">Quiet</option>
+				<option value="2">Sleep</option>
+				<option value="3">Smart</option>
+				<option value="4">SoftCool</option>
+				<option value="5">Turbo</option>
+				<option value="6">WindMode1</option>
+				<option value="7">WindMode2</option>
+				<option value="8">WindMode3</option>
+			</options>
+		</state>
+	</channel-type>
+
+
+
+	<channel-type id="setTemperature-channel">
+		<item-type>Number:Temperature</item-type>
+		<label>Set Temperature</label>
+		<description>Temperature setpoint</description>
+		<tags>
+			<tag>Setpoint</tag>
+			<tag>Temperature</tag>
+		</tags>
+		<state min="10" max="40" step="1" pattern="%d %unit%" readOnly="false"/>
+	</channel-type>
+
+	<channel-type id="measuredTemperature-channel">
+		<item-type>Number:Temperature</item-type>
+		<label>Measured Temperature</label>
+		<description>Current measured temperature on the unit</description>
+		<tags>
+			<tag>Measurement</tag>
+			<tag>Temperature</tag>
+		</tags>
+		<state min="10" max="40" step="1" pattern="%d %unit%" readOnly="true"/>
+	</channel-type>
+
+	<channel-type id="fanSpeed-channel">
+		<item-type>String</item-type>
+		<label>Fan Speed</label>
+		<description>Fan speed</description>
+		<tags>
+			<tag>Status</tag>
+			<tag>Speed</tag>
+		</tags>
+		<state readOnly="false">
+			<options>
+				<option value="0">Auto</option>
+				<option value="1">Low</option>
+				<option value="2">Mid</option>
+				<option value="3">High</option>
+				<option value="4">Turbo</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-type id="vaneVertical-channel">
+		<item-type>String</item-type>
+		<label>Vane Vertical</label>
+		<description>Vane vertical</description>
+		<tags>
+			<tag>Status</tag>
+			<tag>Tilt</tag>
+		</tags>
+		<state readOnly="false">
+			<options>
+				<option value="0">Fixed</option>
+				<option value="1">SwingUD</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-type id="virusDoctor-Channel">
+		<item-type>Switch</item-type>
+		<label>Virus doctor</label>
+		<description>Enable or disable virus doctor (sPI) functionality</description>
+		<tags>
+			<tag>Switch</tag>
+		</tags>
+	</channel-type>
+</thing:thing-descriptions>
