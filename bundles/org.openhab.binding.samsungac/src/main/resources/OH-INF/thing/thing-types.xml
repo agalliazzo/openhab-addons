@@ -16,13 +16,15 @@
 		<description>Sample thing for SamsungAC Binding</description>
 
 		<channels>
-			<channel id="powerChannel" typeId="power-channel"/>
+            <channel id="powerChannel" typeId="power-channel"/>
+            <channel id="internetConnected" typeId="internetConnected-channel"/>
 			<channel id="operationMode" typeId="operationMode-channel"/>
 			<channel id="setTemperature" typeId="setTemperature-channel"/>
 			<channel id="measuredTemperature" typeId="measuredTemperature-channel"/>
 			<channel id="fanSpeed" typeId="fanSpeed-channel"/>
 			<channel id="vaneVertical" typeId="vaneVertical-channel"/>
-			<channel id="virusDoctor" typeId="virusDoctor-Channel"/>
+            <channel id="virusDoctor" typeId="virusDoctor-Channel"/>
+            <channel id="autoClean" typeId="autoClean-Channel"/>
 			<channel id="coMode" typeId="coMode-channel"/>
 		</channels>
 
@@ -65,39 +67,46 @@
 		</tags>
 		<state readOnly="false">
 			<options>
-				<option value="0">Auto</option>
-				<option value="1">Cool</option>
-				<option value="2">Dry</option>
-				<option value="3">Wind</option>
-				<option value="4">Heat</option>
+				<option value="Auto">Auto</option>
+				<option value="Cool">Cool</option>
+				<option value="Dry">Dry</option>
+				<option value="Wind">Wind</option>
+				<option value="Heat">Heat</option>
 			</options>
 		</state>
 	</channel-type>
 
 	<channel-type id="coMode-channel">
 		<item-type>String</item-type>
-		<label>Co Mode</label>
-		<description>Co mode</description>
+		<label>Cooling Mode</label>
+		<description>Cooling mode</description>
 		<tags>
 			<tag>Status</tag>
 			<tag>Mode</tag>
 		</tags>
 		<state readOnly="false">
 			<options>
-				<option value="0">Off</option>
-				<option value="1">Quiet</option>
-				<option value="2">Sleep</option>
-				<option value="3">Smart</option>
-				<option value="4">SoftCool</option>
-				<option value="5">Turbo</option>
-				<option value="6">WindMode1</option>
-				<option value="7">WindMode2</option>
-				<option value="8">WindMode3</option>
+				<option value="Off">Off</option>
+				<option value="Quiet">Quiet</option>
+				<option value="Sleep">Sleep</option>
+				<option value="Smart">Smart</option>
+				<option value="SoftCool">SoftCool</option>
+				<option value="Turbo">Turbo</option>
+				<option value="WindMode1">WindMode1</option>
+				<option value="WindMode2">WindMode2</option>
+				<option value="WindMode3">WindMode3</option>
 			</options>
 		</state>
 	</channel-type>
 
-
+    <channel-type id="internetConnected-channel">
+        <item-type>Switch</item-type>
+        <label>Internet Connected</label>
+        <description>Internet availability for the device</description>
+        <tags>
+            <tag>Status</tag>
+        </tags>
+    </channel-type>
 
 	<channel-type id="setTemperature-channel">
 		<item-type>Number:Temperature</item-type>
@@ -131,11 +140,11 @@
 		</tags>
 		<state readOnly="false">
 			<options>
-				<option value="0">Auto</option>
-				<option value="1">Low</option>
-				<option value="2">Mid</option>
-				<option value="3">High</option>
-				<option value="4">Turbo</option>
+				<option value="Auto">Auto</option>
+				<option value="Low">Low</option>
+				<option value="Mid">Mid</option>
+				<option value="High">High</option>
+				<option value="Turbo">Turbo</option>
 			</options>
 		</state>
 	</channel-type>
@@ -150,8 +159,8 @@
 		</tags>
 		<state readOnly="false">
 			<options>
-				<option value="0">Fixed</option>
-				<option value="1">SwingUD</option>
+				<option value="Fixed">Fixed</option>
+				<option value="SwingUD">SwingUD</option>
 			</options>
 		</state>
 	</channel-type>
@@ -164,4 +173,13 @@
 			<tag>Switch</tag>
 		</tags>
 	</channel-type>
+
+    <channel-type id="autoClean-Channel">
+        <item-type>Switch</item-type>
+        <label>Auto-clean</label>
+        <description>Enable or disable auto-clean functionality</description>
+        <tags>
+            <tag>Switch</tag>
+        </tags>
+    </channel-type>
 </thing:thing-descriptions>

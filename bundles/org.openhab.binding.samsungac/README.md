@@ -1,15 +1,20 @@
 # SamsungAC Binding
 
-Note: enable TLSv1 by placing it in the /etc/java-21-openjdk/security/java.security file under the line jdk.tls.legacyAlgorithms.
+This binding born from the ash of the old SamsungAC binding of the openhab-addons (v1) repository
 
-_Give some details about what this binding is meant for - a protocol, system, specific device._
+***Note:*** enable TLSv1 by placing it in the /etc/java-21-openjdk/security/java.security file under the line jdk.tls.legacyAlgorithms.
 
-_If possible, provide some resources like pictures (only PNG is supported currently), a video, etc. to give an impression of what can be done with this binding._
-_You can place such resources into a `doc` folder next to this README.md._
+This binding provides connectivity for Samsung AC devices made before SmartThing was a thing.
 
-_Put each sentence in a separate line to improve readability of diffs._
+The communication is done via the WiFi interface using a SSL (TLSv1) socket on port 2878/tcp
+
+Data is exchanged in XML format and can be humanely read and interpreted.
 
 ## Supported Things
+
+The only supported thing for this binding is Samsung AC devices with a WiFi interface that expose the port 2878/tcp.
+
+At the moment, no autodiscovery is supported nether token registratio
 
 _Please describe the different supported things / devices including their ThingTypeUID within this section._
 _Which different types are supported, which models were tested etc.?_

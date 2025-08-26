@@ -13,6 +13,14 @@
   <artifactId>org.openhab.binding.samsungac</artifactId>
 
   <name>openHAB Add-ons :: Bundles :: SamsungAC Binding</name>
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>26.0.2</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
   <build>
     <plugins>
       <plugin>

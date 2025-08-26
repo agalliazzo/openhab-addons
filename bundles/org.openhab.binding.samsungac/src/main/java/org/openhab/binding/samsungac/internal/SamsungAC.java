@@ -25,10 +25,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.stream.IntStream;
+import java.util.*;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -60,8 +57,12 @@ public class SamsungAC {
     private final String token;
     @Nullable
     private SSLSocket socket = null;
-
+    @Nullable
     public final SamsungACProperties properties = new SamsungACProperties();
+
+    // public final Map<String, SamsungACPropertyChangedCallback> callbacks = new HashMap<String,
+    // SamsungACPropertyChangedCallback>();
+    private SamsungACPropertyChangedCallback propertyChangedCallback = null;
 
     public SamsungAC(InetAddress ipAddress, String UID, String token) {
         this.ipAddress = ipAddress;
@@ -73,16 +74,37 @@ public class SamsungAC {
         this(InetAddress.getByName(hostname), UID, token);
     }
 
+    public void setCallback(SamsungACPropertyChangedCallback callback) {
+        propertyChangedCallback = callback;
+        if (listeningThread != null) {
+            listeningThread.setCallback(callback);
+        }
+    }
+
+    public void removeCallback(String property) {
+        propertyChangedCallback = null;
+        if (listeningThread != null) {
+            listeningThread.setCallback(null);
+        }
+    }
+
     public static class ListeningThreadClass extends Thread {
         public final SynchronizedSamsungACCommandResponse commandResponse = new SynchronizedSamsungACCommandResponse();
-        final Logger logger = LoggerFactory.getLogger(ListeningThreadClass.class);
-        final SamsungACProperties properties;
-        InputStream inputStream;
-        boolean exitThread = false;
+        private final Logger logger = LoggerFactory.getLogger(ListeningThreadClass.class);
+        private final SamsungACProperties properties;
+        private InputStream inputStream;
+        private boolean exitThread = false;
+        private SamsungACPropertyChangedCallback propertyChangedCallback;
 
-        public ListeningThreadClass(InputStream inputStream, SamsungACProperties properties) {
+        public ListeningThreadClass(InputStream inputStream, SamsungACProperties properties,
+                SamsungACPropertyChangedCallback callback) {
             this.inputStream = inputStream;
             this.properties = properties;
+            this.propertyChangedCallback = callback;
+        }
+
+        public void setCallback(SamsungACPropertyChangedCallback callback) {
+            this.propertyChangedCallback = callback;
         }
 
         public void run() {
@@ -147,37 +169,23 @@ public class SamsungAC {
             String propertyName = attr.getAttribute("ID");
             String value = attr.getAttribute("Value");
             switch (propertyName) {
-                case "AC_FUN_POWER":
-                    properties.AcFunPower = value.equals("On");
+                case "AC_FUN_POWER", "AC_ADD_AUTOCLEAN", "AC_ADD_SPI":
+                    properties.setValue(propertyName, value.equals("On"));
                     break;
-                case "AC_FUN_OPMODE":
-                    properties.AcFunOpMode = IntStream.range(0, SamsungACProperties.workModes.length)
-                            .filter(i -> SamsungACProperties.workModes[i].equals(value)).findFirst().orElse(-1);
+                case "AC_SG_INTERNET":
+                    properties.setValue(propertyName, value.equals("Connected"));
                     break;
-                case "AC_FUN_TEMPSET":
-                    properties.AcFunTempSet = Integer.parseInt(value);
+                case "AC_FUN_OPMODE", "AC_FUN_DIRECTION", "AC_FUN_WINDLEVEL", "AC_FUN_COMODE":
+                    properties.setValue(propertyName, value);
                     break;
-                case "AC_FUN_COMODE":
-                    properties.AcFunCoMode = IntStream.range(0, SamsungACProperties.coModes.length)
-                            .filter(i -> SamsungACProperties.coModes[i].equals(value)).findFirst().orElse(-1);
-                    break;
-                case "AC_FUN_TEMPNOW":
-                    properties.AcFunTempNow = Integer.parseInt(value);
-                    break;
-                case "AC_FUN_WINDLEVEL":
-                    properties.AcFunWindLevel = IntStream.range(0, SamsungACProperties.fanLevels.length)
-                            .filter(i -> SamsungACProperties.fanLevels[i].equals(value)).findFirst().orElse(-1);
-                    break;
-                case "AC_FUN_DIRECTION":
-                    properties.AcFunDirection = IntStream.range(0, SamsungACProperties.fanDirection.length)
-                            .filter(i -> SamsungACProperties.fanDirection[i].equals(value)).findFirst().orElse(-1);
-                    ;
-                    break;
-                case "AC_ADD_AUTOCLEAN":
-                    properties.AcAddAutoClean = value.equals("On");
+                case "AC_FUN_TEMPSET", "AC_FUN_TEMPNOW":
+                    properties.setValue(propertyName, Integer.parseInt(value));
                     break;
                 default:
                     logger.warn("Unmanaged property: {}", propertyName);
+            }
+            if (propertyChangedCallback != null) {
+                propertyChangedCallback.onPropertyChanged(propertyName, properties.getValue(propertyName));
             }
         }
 
@@ -186,7 +194,7 @@ public class SamsungAC {
         }
     }
 
-    public void connect() {
+    public void connect() throws SamsungACConnectionFailedException {
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
 
@@ -205,17 +213,22 @@ public class SamsungAC {
             socket.setSoTimeout(10000);
             socket.startHandshake();
 
-            listeningThread = new ListeningThreadClass(socket.getInputStream(), this.properties);
+            listeningThread = new ListeningThreadClass(socket.getInputStream(), this.properties,
+                    this.propertyChangedCallback);
             listeningThread.start();
 
         } catch (UnknownHostException e) {
             logger.error("Error connecting to Samsung AC", e);
+            throw new SamsungACConnectionFailedException(e);
         } catch (IOException e) {
             logger.error("IOException Error connecting to Samsung AC", e);
+            throw new SamsungACConnectionFailedException(e);
         } catch (NoSuchAlgorithmException e) {
             logger.error("No such algorithm", e);
+            throw new SamsungACConnectionFailedException(e);
         } catch (KeyManagementException e) {
             logger.error("Key management exception", e);
+            throw new SamsungACConnectionFailedException(e);
         }
     }
 
@@ -247,13 +260,13 @@ public class SamsungAC {
         return response.isOk();
     }
 
-    // TODO: Make this method throw a specific exception
-    public void authenticate() {
+    public void authenticate() throws SamsungACAuthenticationFailedException {
         sendCommand("<Request Type=\"AuthToken\"><User Token=\"" + token + "\"/></Request>");
         if (waitForCommandResponse()) {
             logger.info("Authentication successful");
         } else {
             logger.error("Authentication failed");
+            throw new SamsungACAuthenticationFailedException();
         }
     }
 
@@ -269,35 +282,59 @@ public class SamsungAC {
         power(false);
     }
 
-    public void virus_doctor(boolean enabled) {
+    public void virusDoctor(boolean enabled) {
         sendCommand("AC_ADD_SPI", enabled ? "On" : "Off");
     }
 
-    public void set_fan_level(int level) {
+    public void virusDoctorOn() {
+        virusDoctor(true);
+    }
+
+    public void virusDoctorOff() {
+        virusDoctor(false);
+    }
+
+    public void setWindLevel(String level) {
+        sendCommand("AC_FUN_WINDLEVEL", level);
+    }
+
+    public void setWindLevel(int level) {
         if (level > SamsungACProperties.fanLevels.length)
             throw new IllegalArgumentException("Fan level out of bounds");
-        sendCommand("AC_FUN_FAN", SamsungACProperties.fanLevels[level]);
+        setWindLevel(SamsungACProperties.fanLevels[level]);
     }
 
-    public void set_work_mode(int mode) {
+    public void setWorkMode(String mode) {
+        sendCommand("AC_FUN_OPMODE", mode);
+    }
+
+    public void setWorkMode(int mode) {
         if (mode > SamsungACProperties.workModes.length)
             throw new IllegalArgumentException("Work mode out of bounds");
-        sendCommand("AC_FUN_OPMODE", SamsungACProperties.workModes[mode]);
+        setWorkMode(SamsungACProperties.workModes[mode]);
     }
 
-    public void set_co_mode(int mode) {
+    public void setCoolingMode(String mode) {
+        sendCommand("AC_FUN_COMODE", mode);
+    }
+
+    public void setCoMode(int mode) {
         if (mode > SamsungACProperties.coModes.length)
             throw new IllegalArgumentException("Cooling mode out of bounds");
-        sendCommand("AC_FUN_COMODE", SamsungACProperties.coModes[mode]);
+        setCoolingMode(SamsungACProperties.coModes[mode]);
     }
 
-    public void set_fan_direction(int direction) {
+    public void setFanDirection(String direction) {
+        sendCommand("AC_FUN_DIRECTION", direction);
+    }
+
+    public void setFanDirection(int direction) {
         if (direction > SamsungACProperties.fanDirection.length)
             throw new IllegalArgumentException("Fan direction out of bounds");
-        sendCommand("AC_FUN_DIRECTION", SamsungACProperties.fanDirection[direction]);
+        setFanDirection(SamsungACProperties.fanDirection[direction]);
     }
 
-    public void set_temperature(int temperature) {
+    public void setTemperature(int temperature) {
         sendCommand("AC_FUN_TEMPSET", String.valueOf(temperature));
     }
 }

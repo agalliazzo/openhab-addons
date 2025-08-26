@@ -12,6 +12,9 @@
  */
 package org.openhab.binding.samsungac.internal;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * The {@link SamsungACProperties} class contains the properties of the Samsung AC.
  *
@@ -24,42 +27,41 @@ public class SamsungACProperties {
             "WindMode2", "WindMode3" };
     public static final String[] fanDirection = { "Fixed", "SwingUD" };
 
-    // self.status_variables['AC_FUN_ENABLE'] = ""
+    public final Map<String, SamsungACProperty> properties = new HashMap<>();
 
-    // self.status_variables['AC_FUN_POWER'] = ""
-    public boolean AcFunPower = false;
-    // self.status_variables['AC_FUN_SUPPORTED'] = ""
-    // self.status_variables['AC_FUN_OPMODE'] = ""
-    public Integer AcFunOpMode = 0;
-    // self.status_variables['AC_FUN_TEMPSET'] = ""
-    public Integer AcFunTempSet = 25;
-    // self.status_variables['AC_FUN_COMODE'] = ""
-    public Integer AcFunCoMode = 0;
-    // self.status_variables['AC_FUN_ERROR'] = ""
-    // self.status_variables['AC_FUN_TEMPNOW'] = ""
-    public Integer AcFunTempNow = 0;
-    // self.status_variables['AC_FUN_SLEEP'] = ""
-    // self.status_variables['AC_FUN_WINDLEVEL'] = ""
-    public Integer AcFunWindLevel = 0;
-    // self.status_variables['AC_FUN_DIRECTION'] = ""
-    public Integer AcFunDirection = 0;
-    // self.status_variables['AC_ADD_AUTOCLEAN'] = ""
-    public boolean AcAddAutoClean = false;
-    // self.status_variables['AC_ADD_APMODE_END'] = ""
-    // public boolean AcAddApmodeEnd = false;
-    // self.status_variables['AC_ADD_STARTWPS'] = ""
-    // public boolean AcAddStartWps = false;
-    // self.status_variables['AC_ADD_SPI'] = ""
-    // public boolean AcAddSpi = false;
-    // self.status_variables['AC_SG_WIFI'] = ""
-    // public boolean AcSgWifi = false;
-    // self.status_variables['AC_SG_INTERNET'] = ""
-    // public boolean AcSgInternet = false;
-    // self.status_variables['AC_ADD2_VERSION'] = ""
-    // self.status_variables['AC_SG_MACHIGH'] = ""
-    // self.status_variables['AC_SG_MACMID'] = ""
-    // self.status_variables['AC_SG_MACLOW'] = ""
-    // self.status_variables['AC_SG_VENDER01'] = ""
-    // self.status_variables['AC_SG_VENDER02'] = ""
-    // self.status_variables['AC_SG_VENDER03'] = ""
+    SamsungACProperties() {
+
+        properties.put("AC_FUN_ENABLE", new SamsungACProperty());
+        properties.put("AC_FUN_POWER", new SamsungACProperty());
+        properties.put("AC_FUN_SUPPORTED", new SamsungACProperty());
+        properties.put("AC_FUN_OPMODE", new SamsungACProperty());
+        properties.put("AC_FUN_TEMPSET", new SamsungACProperty());
+        properties.put("AC_FUN_COMODE", new SamsungACProperty());
+        properties.put("AC_FUN_ERROR", new SamsungACProperty());
+        properties.put("AC_FUN_TEMPNOW", new SamsungACProperty());
+        properties.put("AC_FUN_SLEEP", new SamsungACProperty());
+        properties.put("AC_FUN_WINDLEVEL", new SamsungACProperty());
+        properties.put("AC_FUN_DIRECTION", new SamsungACProperty());
+        properties.put("AC_ADD_AUTOCLEAN", new SamsungACProperty());
+        properties.put("AC_ADD_APMODE_END", new SamsungACProperty());
+        properties.put("AC_ADD_STARTWPS", new SamsungACProperty());
+        properties.put("AC_ADD_SPI", new SamsungACProperty());
+        properties.put("AC_SG_WIFI", new SamsungACProperty());
+        properties.put("AC_SG_INTERNET", new SamsungACProperty());
+        properties.put("AC_ADD2_VERSION", new SamsungACProperty());
+        properties.put("AC_SG_MACHIGH", new SamsungACProperty());
+        properties.put("AC_SG_MACMID", new SamsungACProperty());
+        properties.put("AC_SG_MACLOW", new SamsungACProperty());
+        properties.put("AC_SG_VENDER01", new SamsungACProperty());
+        properties.put("AC_SG_VENDER02", new SamsungACProperty());
+        properties.put("AC_SG_VENDER03", new SamsungACProperty());
+    }
+
+    public void setValue(String property, Object value) {
+        properties.get(property).setValue(value);
+    }
+
+    public Object getValue(String property) {
+        return properties.get(property).getValue();
+    }
 }

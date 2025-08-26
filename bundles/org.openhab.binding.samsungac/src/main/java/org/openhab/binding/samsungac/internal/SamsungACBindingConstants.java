@@ -32,11 +32,13 @@ public class SamsungACBindingConstants {
     // List of all Channel ids
 
     public static final String CHANNEL_POWER = "powerChannel";
+    public static final String CHANNEL_INTERNET_CONNECTED = "internetConnected";
     public static final String CHANNEL_OPMODE = "operationMode";
     public static final String CHANNEL_MEASURED_TEMPERATURE = "measuredTemperature";
     public static final String CHANNEL_SET_TEMPERATURE = "setTemperature";
-    public static final String CHANNEL_FAN_SPEED = "fanSpeed";
+    public static final String CHANNEL_WIND_LEVEL = "fanSpeed";
     public static final String CHANNEL_VANE_VERTICAL = "vaneVertical";
     public static final String CHANNEL_VIRUS_DOCTOR = "virusDoctor";
+    public static final String CHANNEL_AUTOCLEAN = "autoClean";
     public static final String CHANNEL_COMODE = "coMode";
 }

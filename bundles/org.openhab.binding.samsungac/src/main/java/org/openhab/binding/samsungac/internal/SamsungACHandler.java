@@ -16,10 +16,13 @@ import static org.openhab.binding.samsungac.internal.SamsungACBindingConstants.*
 
 import java.net.UnknownHostException;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.QuantityType;
+import org.openhab.core.library.types.StringType;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -41,7 +44,6 @@ public class SamsungACHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(SamsungACHandler.class);
 
     private @Nullable SamsungACConfiguration config;
-    boolean thingReachable = true;
     @Nullable
     private SamsungAC samsungac = null;
 
@@ -51,111 +53,142 @@ public class SamsungACHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
+        // Probably the SamsungAC protocol can handle the refresh request but I have no idea how, so, for the moment
+        // I just ignore it. This doesn't mean that it cannot be implemented.
+        if (command instanceof RefreshType) {
+            return;
+        }
+
         assert samsungac != null;
         if (CHANNEL_POWER.equals(channelUID.getId())) {
-            if (command instanceof RefreshType) {
-
-            } else if (command instanceof OnOffType onoff) {
+            if (command instanceof OnOffType onoff) {
                 samsungac.power(onoff == OnOffType.ON);
             }
         }
 
         if (CHANNEL_SET_TEMPERATURE.equals(channelUID.getId())) {
-            if (command instanceof RefreshType) {
-
-            } else if (command instanceof QuantityType temperature) {
-                samsungac.set_temperature(temperature.intValue());
+            if (command instanceof QuantityType temperature) {
+                samsungac.setTemperature(temperature.intValue());
             }
         }
 
         if (CHANNEL_VIRUS_DOCTOR.equals(channelUID.getId())) {
-            if (command instanceof RefreshType) {
-
-            } else if (command instanceof OnOffType onoff) {
-                samsungac.virus_doctor(onoff == OnOffType.ON);
+            if (command instanceof OnOffType onoff) {
+                samsungac.virusDoctor(onoff == OnOffType.ON);
             }
         }
 
-        // if (CHANNEL_1.equals(channelUID.getId())) {
-        // if (command instanceof RefreshType) {
-        // // TODO: handle data refresh
-        // }
-        //
-        // // TODO: handle command
-        //
-        // // Note: if communication with thing fails for some reason,
-        // // indicate that by setting the status with detail information:
-        // // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-        // // "Could not control device at IP address x.x.x.x");
-        // }
-        // if()
+        if (CHANNEL_OPMODE.equals(channelUID.getId())) {
+            if (command instanceof StringType opmode) {
+                samsungac.setWorkMode(opmode.toString());
+            }
+        }
+
+        if (CHANNEL_COMODE.equals(channelUID.getId())) {
+            if (command instanceof StringType opmode) {
+                samsungac.setCoolingMode(opmode.toString());
+            }
+        }
+
+        if (CHANNEL_WIND_LEVEL.equals(channelUID.getId())) {
+            if (command instanceof StringType windLevel) {
+                samsungac.setWindLevel(windLevel.toString());
+            }
+        }
+
+        if (CHANNEL_VANE_VERTICAL.equals(channelUID.getId())) {
+            if (command instanceof StringType vane) {
+                samsungac.setFanDirection(vane.toString());
+            }
+        }
     }
 
-    void parseIncomingData() {
+    @org.eclipse.jdt.annotation.NonNullByDefault({})
+    class PropertyChangedCallback implements SamsungACPropertyChangedCallback {
+        @Override
+        public void onPropertyChanged(@NonNull String property, @NonNull Object newValue) {
+            switch (property) {
+                case "AC_FUN_POWER":
+                    updateState(CHANNEL_POWER, OnOffType.from((Boolean) newValue));
+                    break;
+                case "AC_ADD_SPI":
+                    updateState(CHANNEL_VIRUS_DOCTOR, OnOffType.from((Boolean) newValue));
+                    break;
+                case "AC_ADD_AUTOCLEAN":
+                    updateState(CHANNEL_AUTOCLEAN, OnOffType.from((Boolean) newValue));
+                    break;
+                case "AC_SG_INTERNET":
+                    updateState(CHANNEL_INTERNET_CONNECTED, OnOffType.from((Boolean) newValue));
+                case "AC_FUN_OPMODE":
+                    assert newValue instanceof String;
+                    updateState(CHANNEL_OPMODE, new StringType((String) newValue));
+                    break;
+                case "AC_FUN_TEMPSET":
+                    updateState(CHANNEL_SET_TEMPERATURE, new DecimalType((Integer) newValue));
+                    break;
+                case "AC_FUN_COMODE":
+                    assert newValue instanceof String;
+                    updateState(CHANNEL_COMODE, new StringType((String) newValue));
+                    break;
+                case "AC_FUN_WINDLEVEL":
+                    assert newValue instanceof String;
+                    updateState(CHANNEL_WIND_LEVEL, new StringType((String) newValue));
+                    break;
+                case "AC_FUN_DIRECTION":
+                    assert newValue instanceof String;
+                    updateState(CHANNEL_VANE_VERTICAL, new StringType((String) newValue));
+                    break;
+                case "AC_FUN_TEMPNOW":
+                    assert newValue instanceof Integer;
+                    updateState(CHANNEL_MEASURED_TEMPERATURE, new DecimalType((Integer) newValue));
+                    break;
+                case "AC_FUN_ERROR":
+                case "AC_FUN_ENABLE":
+                case "AC_FUN_SLEEP":
+                case "AC_ADD_APMODE_END":
+                case "AC_ADD_STARTWPS":
+                case "AC_SG_WIFI":
+                case "AC_ADD2_VERSION":
+                case "AC_SG_MACHIGH":
+                case "AC_SG_MACMID":
+                case "AC_SG_MACLOW":
+                case "AC_SG_VENDER01":
+                case "AC_SG_VENDER02":
+                case "AC_SG_VENDER03":
+                case "AC_FUN_SUPPORTED":
+                default:
+                    break;
+            }
+        }
     }
 
     @Override
     public void initialize() {
         config = getConfigAs(SamsungACConfiguration.class);
 
-        // TODO: Initialize the handler.
-        // The framework requires you to return from this method quickly, i.e. any network access must be done in
-        // the background initialization below.
-        // Also, before leaving this method a thing status from one of ONLINE, OFFLINE or UNKNOWN must be set. This
-        // might already be the real thing status in case you can decide it directly.
-        // In case you can not decide the thing status directly (e.g. for long running connection handshake using WAN
-        // access or similar) you should set status UNKNOWN here and then decide the real status asynchronously in the
-        // background.
 
-        // set the thing status to UNKNOWN temporarily and let the background task decide for the real status.
-        // the framework is then able to reuse the resources from the thing handler initialization.
-        // we set this upfront to reliably check status updates in unit tests.
         updateStatus(ThingStatus.UNKNOWN);
 
-        // Example for background initialization:
         scheduler.execute(() -> {
-            // <background task with long-running initialization here>
             try {
                 samsungac = new SamsungAC(config.hostname, config.UID, config.token);
-            } catch (UnknownHostException e) {
-                thingReachable = false;
+                samsungac.connect();
+                samsungac.authenticate();
+                samsungac.setCallback(new PropertyChangedCallback());
+
+            } catch (UnknownHostException | SamsungACAuthenticationFailedException | SamsungACConnectionFailedException e) {
+                // 3 Exceptions can be thrown here:
+                // UnknownHostException: if the hostname cannot be resolved
+                // SamsungACAuthenticationFailedException: if the authentication fails
+                // SamsungACConnectionFailedException: if the connection fails
+                // In any case, the initialization fails and the status is set to OFFLINE
+                logger.error("Error initializing SamsungAC", e);
                 updateStatus(ThingStatus.OFFLINE);
-                logger.error("Error connecting to Samsung AC", e);
                 return;
             }
-            // SamsungAC ac = new SamsungAC("192.168.2.241", "7825AD1163E3",
-            // "16968012-2892-M993-N707-373832354144");
-            // SamsungAC ac = new SamsungAC("192.168.2.241", "7825AD1163E3",
-            // "16968012-2892-M993-N707-373832354144");
-            // SamsungAC ac = new SamsungAC("192.168.2.241", "7825AD1163E3",
-            // "16968012-2892-M993-N707-373832354144");
-            // samsungac = new SamsungAC(config.hostname, config.UID, config.token);
-            // Thread.sleep(1000);
-            samsungac.connect();
-            // Thread.sleep(1000);
-            samsungac.authenticate();
-            thingReachable = true;
 
-            // when done do:
-            if (thingReachable) {
-                updateStatus(ThingStatus.ONLINE);
-            } else {
-                updateStatus(ThingStatus.OFFLINE);
-            }
+            // If everything went well, the initialization was successful and the status is set to ONLINE
+            updateStatus(ThingStatus.ONLINE);
         });
-
-        // These logging types should be primarily used by bindings
-        // logger.trace("Example trace message");
-        // logger.debug("Example debug message");
-        // logger.warn("Example warn message");
-        //
-        // Logging to INFO should be avoided normally.
-        // See https://www.openhab.org/docs/developer/guidelines.html#f-logging
-
-        // Note: When initialization can NOT be done set the status with more details for further
-        // analysis. See also class ThingStatusDetail for all available status details.
-        // Add a description to give user information to understand why thing does not work as expected. E.g.
-        // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
-        // "Can not access device as username and/or password are invalid");
     }
 }
