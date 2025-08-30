@@ -3,6 +3,11 @@
 This binding born from the ash of the old SamsungAC binding of the openhab-addons (v1) repository
 
 ***Note:*** enable TLSv1 by placing it in the /etc/java-21-openjdk/security/java.security file under the line jdk.tls.legacyAlgorithms.
+A convenient way to do this is to use the following command from your OH instance shell:
+```bash
+sudo sed -i '/^jdk\.tls\.legacyAlgorithms/ {/TLSv1/! s/$/,TLSv1/}' /etc/java-21-openjdk/security/java.security
+```
+
 
 This binding provides connectivity for Samsung AC devices made before SmartThing was a thing.
 
@@ -11,74 +16,58 @@ The communication is done via the WiFi interface using a SSL (TLSv1) socket on p
 Data is exchanged in XML format and can be humanely read and interpreted.
 
 
-## Token
-Per ricevere il token, dopo la scansione, aggiungere la thing. Aggiungere un item di tipo switch al canale 
-Get token e cliccare su accensione. A token ricevuto lo stesso tornerà ad off.
-Tornare nel tab principale e il token dovrebbe vedersi
-
-
-
 ## Supported Things
 
 The only supported thing for this binding is Samsung AC devices with a WiFi interface that expose the port 2878/tcp.
 
-At the moment, no autodiscovery is supported nether token registratio
-
-_Please describe the different supported things / devices including their ThingTypeUID within this section._
-_Which different types are supported, which models were tested etc.?_
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
-
-- `bridge`: Short description of the Bridge, if any
-- `sample`: Short description of the Thing with the ThingTypeUID `sample`
-
 ## Discovery
 
-_Describe the available auto-discovery features here._
-_Mention for what it works and what needs to be kept in mind when using it._
-
-## Binding Configuration
-
-_If your binding requires or supports general configuration settings, please create a folder ```cfg``` and place the configuration file ```<bindingId>.cfg``` inside it._
-_In this section, you should link to this file and provide some information about the options._
-_The file could e.g. look like:_
-
-```
-# Configuration for the SamsungAC Binding
-#
-# Default secret key for the pairing of the SamsungAC Thing.
-# It has to be between 10-40 (alphanumeric) characters.
-# This may be changed by the user for security reasons.
-secret=openHABSecret
-```
-
-_Note that it is planned to generate some part of this based on the information that is available within ```src/main/resources/OH-INF/binding``` of your binding._
-
-_If your binding does not offer any generic configurations, you can remove this section completely._
+Autodiscovery is supported through a background scanning process. Units will be added automatically in the discovered devices list following the mailbox principles
 
 ## Thing Configuration
 
-_Describe what is needed to manually configure a thing, either through the UI or via a thing-file._
-_This should be mainly about its mandatory and optional configuration parameters._
+Thing can be configured using the web interface or the configuration file. 
+Using the web interface help with token acquisition.
 
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
+### Configuration parameters
 
-### `sample` Thing Configuration
+| Name     | Type | Description                                                       | Default | Required | Advanced |
+|----------|------|-------------------------------------------------------------------|---------|----------|----------|
+| hostname | text | Hostname or IP address of the device                              | N/A     | yes      | no       |
+| UID      | text | Unique ID for the device (MAC Address)                            | N/A     | yes      | no       |
+| token    | text | Token for authenticating to the device, refer to the next section | N/A     | no       | no       |
 
-| Name            | Type    | Description                           | Default | Required | Advanced |
-|-----------------|---------|---------------------------------------|---------|----------|----------|
-| hostname        | text    | Hostname or IP address of the device  | N/A     | yes      | no       |
-| password        | text    | Password to access the device         | N/A     | yes      | no       |
-| refreshInterval | integer | Interval the device is polled in sec. | 600     | no       | yes      |
+## Token
+If you already have a token for the device you can simply paste in the token field.
+
+If, instead, you want to acquire a token, you can do so by using the Get Token channel:
+1. Link the Get Token channel to an item of type switch
+2. Turn on the switch
+3. Power On the AC Unit with the IR Remote
+4. The token will be sent to the thing, the item will turn off and the thing will go offline
+5. Disable the thing
+6. Enable the thing again
 
 ## Channels
 
-_Here you should provide information about available channel types, what their meaning is and how they can be used._
+Actual features supported in the binding are exposed as channels.
 
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
+| Channel              | Type   | Read/Write | Description                                                                                                              |
+|----------------------|--------|------------|--------------------------------------------------------------------------------------------------------------------------|
+| Power                | Switch | RW         | This turn on/off the AC unit                                                                                             |
+| Get Token            | Switch | RW         | Start the token acquisition procedure                                                                                    |
+| Internet Connected   | Switch | R          | This channel is updated when the device is connected to the internet                                                     |
+| Operation mode       | Text   | RW         | Set the mode of the AC unit (Cool, Dry, Wind, Heat, Auto)                                                                |
+| Set Temperature      | Number | RW         | Set the temperature of the AC unit                                                                                       |
+| Measured temeprature | Number | R          | Measured temperature of the AC unit                                                                                      |
+| Fan Speed            | String | RW         | Set the fan speed of the AC unit                                                                                         |
+| Vane vertical        | String | RW         | Set the vane swing feature (Swing or fixed)                                                                              |
+| Virus Doctor         | Switch | RW         | Enable/Disable the virus doctor feature                                                                                  |
+| Auto clean           | Switch | RW         | Enable/Disable the auto clean feature                                                                                    |
+| Cooling mode         | String | RW         | Set the cooling (maybe convienient?) mode for the AC Unit (Off, Quiet, Sleep, Smart, SoftCool, Turbo, WindMode1, 2 and 3 |
 
-| Channel | Type   | Read/Write | Description                 |
-|---------|--------|------------|-----------------------------|
-| control | Switch | RW         | This is the control channel |
+
+
 
 ## Full Example
 
@@ -89,13 +78,13 @@ _*.sitemap examples are optional._
 ### Thing Configuration
 
 ```java
-Example thing configuration goes here.
+
 ```
 
 ### Item Configuration
 
 ```java
-Example item configuration goes here.
+
 ```
 
 ### Sitemap Configuration
