@@ -111,3 +111,5 @@ public class ZonePlayerDiscoveryParticipant implements UpnpDiscoveryParticipant 
         return SonosXMLParser.getRoomName(device.getIdentity().getDescriptorURL());
     }
 }
+
+

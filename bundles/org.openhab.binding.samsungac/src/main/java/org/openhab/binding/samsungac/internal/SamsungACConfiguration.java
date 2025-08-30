@@ -13,6 +13,7 @@
 package org.openhab.binding.samsungac.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.openhab.core.config.core.Configuration;
 
 /**
  * The {@link SamsungACConfiguration} class contains fields mapping thing configuration parameters.
@@ -20,7 +21,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
  * @author Alessio Galliazzo - Initial contribution
  */
 @NonNullByDefault
-public class SamsungACConfiguration {
+public class SamsungACConfiguration extends Configuration {
 
     /**
      * Sample configuration parameters. Replace with your own.

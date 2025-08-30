@@ -14,6 +14,8 @@ package org.openhab.binding.samsungac.internal;
 
 import java.time.LocalDateTime;
 
+import org.w3c.dom.Element;
+
 /**
  * The {@link SamsungACCommandResponse} contains the response of a command
  *
@@ -22,10 +24,12 @@ import java.time.LocalDateTime;
 public class SamsungACCommandResponse {
     private final boolean isOk;
     private final LocalDateTime timestamp;
+    private Element xmlElement;
 
-    public SamsungACCommandResponse(boolean isOk, LocalDateTime timestamp) {
+    public SamsungACCommandResponse(boolean isOk, LocalDateTime timestamp, Element xmlElement) {
         this.isOk = isOk;
         this.timestamp = timestamp;
+        this.xmlElement = xmlElement;
     }
 
     public boolean isOk() {
@@ -34,5 +38,9 @@ public class SamsungACCommandResponse {
 
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    public Element getXmlElement() {
+        return xmlElement;
     }
 }

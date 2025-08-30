@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -42,6 +43,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 /**
  * The {@link SamsungAC} is responsible for handling communication with the AC unit
@@ -75,10 +77,9 @@ public class SamsungAC {
     }
 
     public void setCallback(SamsungACPropertyChangedCallback callback) {
+        assert listeningThread != null;
         propertyChangedCallback = callback;
-        if (listeningThread != null) {
-            listeningThread.setCallback(callback);
-        }
+        listeningThread.setCallback(callback);
     }
 
     public void removeCallback(String property) {
@@ -109,9 +110,14 @@ public class SamsungAC {
 
         public void run() {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String data = "";
             while (!exitThread) {
                 try {
-                    String data = reader.readLine();
+                    data = reader.readLine();
+                    // Remove the first string received that is outside the XML formatting rules
+                    if ("DRC-1.00".equals(data)) {
+                        continue;
+                    }
                     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                     DocumentBuilder builder = factory.newDocumentBuilder();
                     InputSource is = new InputSource(new StringReader(data));
@@ -131,7 +137,11 @@ public class SamsungAC {
                     logger.error("IOException Error listening to Samsung AC", e);
                 } catch (ParserConfigurationException e) {
                     logger.error("Error parsing response", e);
+                } catch (SAXParseException e) {
+                    logger.error("Invalid data received: {}", data);
+                    logger.error("Error parsing response", e);
                 } catch (SAXException e) {
+                    logger.error("Invalid data received: {}", data);
                     logger.error("Error parsing response", e);
                 }
 
@@ -140,11 +150,14 @@ public class SamsungAC {
 
         private void processResponse(Element response) {
             String status = response.getAttribute("Status");
-            String startFrom = response.getAttribute("StartFrom").replaceAll("/", "T") + "Z";
-            LocalDateTime timestamp = LocalDateTime.parse(startFrom, DateTimeFormatter.ISO_DATE_TIME);
+            LocalDateTime timestamp = LocalDateTime.now();
+            if (!response.getAttribute("StartFrom").isEmpty()) {
+                String startFrom = response.getAttribute("StartFrom").replaceAll("/", "T") + "Z";
+                timestamp = LocalDateTime.parse(startFrom, DateTimeFormatter.ISO_DATE_TIME);
+            }
+
             synchronized (commandResponse) {
-                commandResponse.setResponse(status.equals("Okay"), timestamp);
-                // setResponse("Okay".equals(status), timestamp);
+                commandResponse.setResponse(status.equals("Okay"), timestamp, response);
             }
         }
 
@@ -162,35 +175,52 @@ public class SamsungAC {
             // <Attr ID="AC_FUN_POWER" Value="On" />
             // </Status>
             // </Update>
-            if (!"Status".equals(update.getAttribute("Type")))
+            String updateType = update.getAttribute("Type");
+            String propertyName = "";
+
+            if ("Status".equals(updateType)) {
+                Element status = (Element) update.getElementsByTagName("Status").item(0);
+                Element attr = (Element) status.getElementsByTagName("Attr").item(0);
+                propertyName = attr.getAttribute("ID");
+                String value = attr.getAttribute("Value");
+                switch (propertyName) {
+                    case "AC_FUN_POWER", "AC_ADD_AUTOCLEAN", "AC_ADD_SPI":
+                        properties.setValue(propertyName, value.equals("On"));
+                        break;
+                    case "AC_SG_INTERNET":
+                        properties.setValue(propertyName, value.equals("Connected"));
+                        break;
+                    case "AC_FUN_OPMODE", "AC_FUN_DIRECTION", "AC_FUN_WINDLEVEL", "AC_FUN_COMODE":
+                        properties.setValue(propertyName, value);
+                        break;
+                    case "AC_FUN_TEMPSET", "AC_FUN_TEMPNOW":
+                        properties.setValue(propertyName, Integer.parseInt(value));
+                        break;
+                    default:
+                        logger.warn("Unmanaged property: {}", propertyName);
+                }
+
+            } else if ("GetToken".equals(updateType)) {
+                propertyName = "GetToken";
+                String token = update.getAttribute("Token");
+                properties.setValue(propertyName, token);
+            } else if ("InvalidateAccount".equals(updateType)) {
+                logger.info("Account invalidated, please re-authenticate");
+                // TODO: Maybe call authenticate in here
+                properties.setValue("AccountValidated", false);
+            } else {
+                logger.warn("Unexpected update type: {}", updateType);
                 return;
-            Element status = (Element) update.getElementsByTagName("Status").item(0);
-            Element attr = (Element) status.getElementsByTagName("Attr").item(0);
-            String propertyName = attr.getAttribute("ID");
-            String value = attr.getAttribute("Value");
-            switch (propertyName) {
-                case "AC_FUN_POWER", "AC_ADD_AUTOCLEAN", "AC_ADD_SPI":
-                    properties.setValue(propertyName, value.equals("On"));
-                    break;
-                case "AC_SG_INTERNET":
-                    properties.setValue(propertyName, value.equals("Connected"));
-                    break;
-                case "AC_FUN_OPMODE", "AC_FUN_DIRECTION", "AC_FUN_WINDLEVEL", "AC_FUN_COMODE":
-                    properties.setValue(propertyName, value);
-                    break;
-                case "AC_FUN_TEMPSET", "AC_FUN_TEMPNOW":
-                    properties.setValue(propertyName, Integer.parseInt(value));
-                    break;
-                default:
-                    logger.warn("Unmanaged property: {}", propertyName);
             }
             if (propertyChangedCallback != null) {
-                propertyChangedCallback.onPropertyChanged(propertyName, properties.getValue(propertyName));
+                Object propertyValue = properties.getValue(propertyName);
+                propertyChangedCallback.onPropertyChanged(propertyName, propertyValue);
             }
         }
 
         public void quit() {
-            this.interrupt();
+            exitThread = true;
+            // this.interrupt();
         }
     }
 
@@ -203,20 +233,23 @@ public class SamsungAC {
 
             SSLSocketFactory socketFactory = sslContext.getSocketFactory();
 
-            this.socket = (SSLSocket) socketFactory.createSocket(this.ipAddress, 2878);
+            socket = (SSLSocket) socketFactory.createSocket(this.ipAddress, 2878);
             String[] cipherSuites = socket.getSupportedCipherSuites();
             List<String> filteredCiphers = Arrays.stream(cipherSuites).filter(cipher -> !cipher.contains("DH"))
                     .toList();
 
             socket.setEnabledProtocols(new String[] { "TLSv1" });
             socket.setEnabledCipherSuites(filteredCiphers.toArray(new String[0]));
-            socket.setSoTimeout(10000);
+            socket.setSoTimeout(5000);
             socket.startHandshake();
 
             listeningThread = new ListeningThreadClass(socket.getInputStream(), this.properties,
                     this.propertyChangedCallback);
             listeningThread.start();
 
+        } catch (SocketTimeoutException e) {
+            logger.error("Socket connection timeout", e);
+            throw new SamsungACConnectionFailedException(e);
         } catch (UnknownHostException e) {
             logger.error("Error connecting to Samsung AC", e);
             throw new SamsungACConnectionFailedException(e);
@@ -229,6 +262,44 @@ public class SamsungAC {
         } catch (KeyManagementException e) {
             logger.error("Key management exception", e);
             throw new SamsungACConnectionFailedException(e);
+        }
+    }
+
+    public void disconnect() {
+        assert socket != null;
+        try {
+            assert properties != null;
+            properties.setValue("AccountValidated", false);
+            socket.close();
+        } catch (IOException e) {
+            logger.error("IOException Error disconnecting from Samsung AC", e);
+        }
+        if (listeningThread != null) {
+            listeningThread.quit();
+            try {
+                listeningThread.join();
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException Error joining listening thread", e);
+            }
+            listeningThread = null;
+            socket = null;
+
+        }
+    }
+
+    public void getToken() {
+        assert socket != null;
+        try {
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            writer.write("<Request Type=\"GetToken\"/>\n\r");
+            writer.flush();
+            SamsungACCommandResponse response = listeningThread.getResponse();
+            while (response == null) {
+                response = listeningThread.getResponse();
+            }
+            logger.info("Token: {}", response);
+        } catch (IOException e) {
+
         }
     }
 
@@ -263,6 +334,8 @@ public class SamsungAC {
     public void authenticate() throws SamsungACAuthenticationFailedException {
         sendCommand("<Request Type=\"AuthToken\"><User Token=\"" + token + "\"/></Request>");
         if (waitForCommandResponse()) {
+            assert properties != null;
+            properties.setValue("AccountValidated", true);
             logger.info("Authentication successful");
         } else {
             logger.error("Authentication failed");

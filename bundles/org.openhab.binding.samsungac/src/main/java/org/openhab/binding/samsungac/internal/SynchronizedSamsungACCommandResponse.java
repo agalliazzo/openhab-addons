@@ -14,6 +14,8 @@ package org.openhab.binding.samsungac.internal;
 
 import java.time.LocalDateTime;
 
+import org.w3c.dom.Element;
+
 /**
  * The {@link SynchronizedSamsungACCommandResponse} is responsible for handling syncronization from the read thread to
  * the
@@ -29,19 +31,21 @@ public class SynchronizedSamsungACCommandResponse {
         response = null;
     }
 
-    public synchronized void setResponse(boolean isOk, LocalDateTime timestamp) {
+    public synchronized void setResponse(boolean isOk, LocalDateTime timestamp, Element xmlElement) {
 
-        this.setResponse(new SamsungACCommandResponse(isOk, timestamp));
+        this.setResponse(new SamsungACCommandResponse(isOk, timestamp, xmlElement));
     }
 
     public synchronized void setResponse(SamsungACCommandResponse response) {
-        while (this.isResponseReceived) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                // e.printStackTrace();
-            }
-        }
+        /*
+         * while (this.isResponseReceived) {
+         * try {
+         * wait();
+         * } catch (InterruptedException e) {
+         * // e.printStackTrace();
+         * }
+         * }
+         */
         this.isResponseReceived = true;
         this.response = response;
         notify();

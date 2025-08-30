@@ -27,11 +27,12 @@ public class SamsungACBindingConstants {
     private static final String BINDING_ID = "samsungac";
 
     // List of all Thing Type UIDs
-    public static final ThingTypeUID THING_TYPE_SAMPLE = new ThingTypeUID(BINDING_ID, "Airconditioner");
+    public static final ThingTypeUID THING_TYPE_UID = new ThingTypeUID(BINDING_ID, "Airconditioner");
 
     // List of all Channel ids
 
     public static final String CHANNEL_POWER = "powerChannel";
+    public static final String CHANNEL_GET_TOKEN = "getToken";
     public static final String CHANNEL_INTERNET_CONNECTED = "internetConnected";
     public static final String CHANNEL_OPMODE = "operationMode";
     public static final String CHANNEL_MEASURED_TEMPERATURE = "measuredTemperature";

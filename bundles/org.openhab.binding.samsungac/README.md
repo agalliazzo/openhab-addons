@@ -10,6 +10,14 @@ The communication is done via the WiFi interface using a SSL (TLSv1) socket on p
 
 Data is exchanged in XML format and can be humanely read and interpreted.
 
+
+## Token
+Per ricevere il token, dopo la scansione, aggiungere la thing. Aggiungere un item di tipo switch al canale 
+Get token e cliccare su accensione. A token ricevuto lo stesso tornerà ad off.
+Tornare nel tab principale e il token dovrebbe vedersi
+
+
+
 ## Supported Things
 
 The only supported thing for this binding is Samsung AC devices with a WiFi interface that expose the port 2878/tcp.

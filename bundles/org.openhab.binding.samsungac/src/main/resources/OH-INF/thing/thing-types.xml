@@ -16,15 +16,16 @@
 		<description>Sample thing for SamsungAC Binding</description>
 
 		<channels>
-            <channel id="powerChannel" typeId="power-channel"/>
-            <channel id="internetConnected" typeId="internetConnected-channel"/>
+			<channel id="powerChannel" typeId="power-channel"/>
+			<channel id="getToken" typeId="getToken-channel"/>
+			<channel id="internetConnected" typeId="internetConnected-channel"/>
 			<channel id="operationMode" typeId="operationMode-channel"/>
 			<channel id="setTemperature" typeId="setTemperature-channel"/>
 			<channel id="measuredTemperature" typeId="measuredTemperature-channel"/>
 			<channel id="fanSpeed" typeId="fanSpeed-channel"/>
 			<channel id="vaneVertical" typeId="vaneVertical-channel"/>
-            <channel id="virusDoctor" typeId="virusDoctor-Channel"/>
-            <channel id="autoClean" typeId="autoClean-Channel"/>
+			<channel id="virusDoctor" typeId="virusDoctor-Channel"/>
+			<channel id="autoClean" typeId="autoClean-Channel"/>
 			<channel id="coMode" typeId="coMode-channel"/>
 		</channels>
 
@@ -39,7 +40,7 @@
 				<label>UID</label>
 				<description>Unique ID for the device, usually the MAC address without colon</description>
 			</parameter>
-			<parameter name="token" type="text" required="true">
+			<parameter name="token" type="text" required="false">
 				<context>Device-information</context>
 				<label>Token</label>
 				<description>Token for the device - TBD</description>
@@ -55,6 +56,12 @@
 			<tag>Switch</tag>
 			<tag>Power</tag>
 		</tags>
+	</channel-type>
+
+	<channel-type id="getToken-channel">
+		<item-type>Switch</item-type>
+		<label>Get Token</label>
+		<description>Link a switch item here to start the token acquisition procedure. See docs</description>
 	</channel-type>
 
 	<channel-type id="operationMode-channel">
@@ -99,14 +106,14 @@
 		</state>
 	</channel-type>
 
-    <channel-type id="internetConnected-channel">
-        <item-type>Switch</item-type>
-        <label>Internet Connected</label>
-        <description>Internet availability for the device</description>
-        <tags>
-            <tag>Status</tag>
-        </tags>
-    </channel-type>
+	<channel-type id="internetConnected-channel">
+		<item-type>Switch</item-type>
+		<label>Internet Connected</label>
+		<description>Internet availability for the device</description>
+		<tags>
+			<tag>Status</tag>
+		</tags>
+	</channel-type>
 
 	<channel-type id="setTemperature-channel">
 		<item-type>Number:Temperature</item-type>
@@ -174,12 +181,12 @@
 		</tags>
 	</channel-type>
 
-    <channel-type id="autoClean-Channel">
-        <item-type>Switch</item-type>
-        <label>Auto-clean</label>
-        <description>Enable or disable auto-clean functionality</description>
-        <tags>
-            <tag>Switch</tag>
-        </tags>
-    </channel-type>
+	<channel-type id="autoClean-Channel">
+		<item-type>Switch</item-type>
+		<label>Auto-clean</label>
+		<description>Enable or disable auto-clean functionality</description>
+		<tags>
+			<tag>Switch</tag>
+		</tags>
+	</channel-type>
 </thing:thing-descriptions>

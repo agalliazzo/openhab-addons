@@ -12,6 +12,9 @@
  */
 package org.openhab.binding.samsungac.internal;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * The {@link SamsungACProperty} class contains the property of the Samsung AC.
  *
@@ -21,14 +24,19 @@ package org.openhab.binding.samsungac.internal;
 public class SamsungACProperty {
     private Object value;
     volatile boolean isUpdated = false;
+    private Lock dataLock = new ReentrantLock();
 
     public SamsungACProperty() {
+    }
+
+    public SamsungACProperty(Object value) {
+        this.value = value;
     }
 
     public synchronized Object getValue() {
         while (!isUpdated) {
             try {
-                wait();
+                wait(5000);
             } catch (InterruptedException ignored) {
 
             }
